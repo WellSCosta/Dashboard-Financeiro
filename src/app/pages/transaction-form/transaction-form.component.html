@@ -1,0 +1,85 @@
+<div class="form-container">
+  <header class="form-header">
+    <h1>Nova Transação</h1>
+    <p>Adicione receitas ou despesas à sua conta</p>
+  </header>
+
+  <!-- Vinculamos a tag form ao FormGroup definido no TypeScript -->
+  <form [formGroup]="transactionForm" (ngSubmit)="onSubmit()" class="transaction-form">
+    
+    <!-- Descrição -->
+    <div class="form-group">
+      <label for="description">Descrição</label>
+      <input 
+        id="description" 
+        type="text" 
+        formControlName="description" 
+        placeholder="Ex: Salário, Aluguel, Academia"
+        [class.is-invalid]="f['description'].touched && f['description'].invalid"
+      />
+      <!-- Validação Moderna com @if -->
+      @if (f['description'].touched && f['description'].errors) {
+        <div class="error-feedback">
+          @if (f['description'].errors['required']) {
+            <span>A descrição é obrigatória.</span>
+          }
+          @if (f['description'].errors['minlength']) {
+            <span>A descrição deve ter no mínimo 3 caracteres.</span>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Valor -->
+    <div class="form-group">
+      <label for="amount">Valor (R$)</label>
+      <input 
+        id="amount" 
+        type="number" 
+        formControlName="amount" 
+        placeholder="0,00"
+        step="0.01"
+        [class.is-invalid]="f['amount'].touched && f['amount'].invalid"
+      />
+      @if (f['amount'].touched && f['amount'].errors) {
+        <div class="error-feedback">
+          @if (f['amount'].errors['required']) {
+            <span>O valor é obrigatório.</span>
+          }
+          @if (f['amount'].errors['min']) {
+            <span>O valor deve ser maior do que zero.</span>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Tipo de Transação -->
+    <div class="form-group">
+      <label>Tipo</label>
+      <div class="radio-group">
+        <label class="radio-card income-option">
+          <input type="radio" formControlName="type" value="income" />
+          <div class="radio-content">
+            <span class="dot"></span>
+            <span>Entrada (Receita)</span>
+          </div>
+        </label>
+
+        <label class="radio-card expense-option">
+          <input type="radio" formControlName="type" value="expense" />
+          <div class="radio-content">
+            <span class="dot"></span>
+            <span>Saída (Despesa)</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Ações do Formulário -->
+    <div class="form-actions">
+      <!-- O botão de voltar usa RouterModule para navegação -->
+      <a routerLink="/" class="btn-secondary">Cancelar</a>
+      <button type="submit" class="btn-primary">Salvar Transação</button>
+    </div>
+  </form>
+</div>
