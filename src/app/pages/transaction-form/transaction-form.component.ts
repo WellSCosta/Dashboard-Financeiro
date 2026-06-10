@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { FinanceService } from '../../core/services/finance.service';
 
 @Component({
@@ -11,16 +11,22 @@ import { FinanceService } from '../../core/services/finance.service';
   templateUrl: './transaction-form.component.html',
   styleUrl: './transaction-form.component.css'
 })
-export class TransactionFormComponent {
+export class TransactionFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private financeService = inject(FinanceService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute); // Injetamos para ler parâmetros da URL
 
-  // 1. Declaramos o FormGroup que gerencia todo o formulário
   public transactionForm: FormGroup;
+  
+  // Variáveis para controlar o modo de Edição
+  public isEditMode = false;
+  private transactionId: string | null = null;
+
+  // Lista dinâmica de categorias com base no tipo selecionado (Receita / Despesa)
+  public categoriesList: string[] = [];
 
   constructor() {
-    // 2. Construímos o formulário com campos e suas respectivas validações
     this.transactionForm = this.fb.group({
       description: ['', [
         Validators.required,
@@ -29,38 +35,83 @@ export class TransactionFormComponent {
       ]],
       amount: [null, [
         Validators.required,
-        Validators.min(0.01) // O valor deve ser positivo e maior que zero
+        Validators.min(0.01)
       ]],
       type: ['income', [
         Validators.required
+      ]],
+      category: ['', [
+        Validators.required // Categoria passa a ser obrigatória
       ]]
     });
   }
 
-  // Getters para facilitar o acesso e verificação de erros no template HTML
+  ngOnInit() {
+    // 1. Escuta mudanças no campo "type" (Entrada/Saída) para carregar as categorias correspondentes
+    this.categoriesList = this.financeService.categories['income']; // Padrão inicial
+
+    this.transactionForm.get('type')?.valueChanges.subscribe(type => {
+      this.categoriesList = this.financeService.categories[type as 'income' | 'expense'];
+      
+      // Limpa a categoria anterior ao mudar de tipo para evitar erros
+      this.transactionForm.get('category')?.setValue('');
+    });
+
+    // 2. Verifica se existe o parâmetro "id" na rota ativa
+    this.transactionId = this.route.snapshot.paramMap.get('id');
+    
+    if (this.transactionId) {
+      this.isEditMode = true;
+      const transaction = this.financeService.getTransactionById(this.transactionId);
+
+      if (transaction) {
+        // Atualiza a lista de categorias apropriada antes de preencher o valor
+        this.categoriesList = this.financeService.categories[transaction.type];
+
+        // Preenche o formulário reativamente com os dados antigos
+        this.transactionForm.patchValue({
+          description: transaction.description,
+          amount: transaction.amount,
+          type: transaction.type,
+          category: transaction.category
+        });
+      } else {
+        // Se a transação por ID não for encontrada, redireciona de volta
+        this.router.navigate(['/']);
+      }
+    }
+  }
+
   get f() {
     return this.transactionForm.controls;
   }
 
-  // Método disparado ao submeter o formulário
   onSubmit() {
-    // Se o formulário estiver inválido, interrompe o envio
     if (this.transactionForm.invalid) {
-      this.transactionForm.markAllAsTouched(); // Marca todos os campos como tocados para exibir os erros
+      this.transactionForm.markAllAsTouched();
       return;
     }
 
-    // Obtém os valores prontos do formulário
-    const { description, amount, type } = this.transactionForm.value;
+    const { description, amount, type, category } = this.transactionForm.value;
 
-    // Adiciona a transação no serviço (que atualiza o Signal reativo)
-    this.financeService.addTransaction({
-      description,
-      amount,
-      type
-    });
+    if (this.isEditMode && this.transactionId) {
+      // Executa a modificação reativa se for edição
+      this.financeService.updateTransaction(this.transactionId, {
+        description,
+        amount,
+        type,
+        category
+      });
+    } else {
+      // Cria uma nova transação
+      this.financeService.addTransaction({
+        description,
+        amount,
+        type,
+        category
+      });
+    }
 
-    // Navega de volta ao Dashboard (que configuraremos no roteador na próxima etapa)
     this.router.navigate(['/']);
   }
 }

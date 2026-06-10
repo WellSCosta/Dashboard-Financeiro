@@ -12,92 +12,147 @@
   <section class="cards-grid">
     <div class="card card-income">
       <h3>Total Entradas</h3>
-      <!-- Invocamos o Signal totalIncomes() como uma função no template -->
-      <p class="amount">{{ totalIncomes() | currency:'BRL' }}</p>
+      <p class="amount">{{ totalIncomes() | currencyFormat }}</p>
     </div>
 
     <div class="card card-expense">
       <h3>Total Saídas</h3>
-      <p class="amount">- {{ totalExpenses() | currency:'BRL' }}</p>
+      <p class="amount">- {{ totalExpenses() | currencyFormat }}</p>
     </div>
 
     <div class="card card-balance" [class.negative]="netBalance() < 0">
       <h3>Saldo Atual</h3>
-      <p class="amount">{{ netBalance() | currency:'BRL' }}</p>
+      <p class="amount">{{ netBalance() | currencyFormat }}</p>
     </div>
   </section>
 
-  <!-- Filtros e Listagem -->
-  <section class="transactions-section">
-    <div class="section-header">
-      <h2>Transações Recentes</h2>
-      
-      <!-- Filtros Dinâmicos -->
-      <div class="filters">
-        <button 
-          [class.active]="currentFilter() === 'all'" 
-          (click)="setFilter('all')">
-          Todas
-        </button>
-        <button 
-          [class.active]="currentFilter() === 'income'" 
-          (click)="setFilter('income')">
-          Entradas
-        </button>
-        <button 
-          [class.active]="currentFilter() === 'expense'" 
-          (click)="setFilter('expense')">
-          Saídas
-        </button>
+  <!-- Estrutura Principal: Listagem e Gráfico -->
+  <div class="dashboard-content-grid">
+    
+    <!-- Lado Esquerdo: Listagem de Transações -->
+    <section class="transactions-section">
+      <div class="section-header">
+        <h2>Transações Recentes</h2>
+        
+        <!-- Filtros Dinâmicos -->
+        <div class="filters">
+          <button 
+            [class.active]="currentFilter() === 'all'" 
+            (click)="setFilter('all')">
+            Todas
+          </button>
+          <button 
+            [class.active]="currentFilter() === 'income'" 
+            (click)="setFilter('income')">
+            Entradas
+          </button>
+          <button 
+            [class.active]="currentFilter() === 'expense'" 
+            (click)="setFilter('expense')">
+            Saídas
+          </button>
+        </div>
       </div>
-    </div>
 
-    <!-- Tabela de Transações usando o Modern Control Flow (@for e @if) -->
-    <div class="transactions-table-wrapper">
-      <table class="transactions-table">
-        <thead>
-          <tr>
-            <th>Descrição</th>
-            <th>Tipo</th>
-            <th>Valor</th>
-            <th>Data</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- O novo @for substitui a diretiva *ngFor e possui ótima performance.
-               A propriedade 'track' é obrigatória e ajuda o Angular a atualizar apenas as linhas necessárias. -->
-          @for (item of filteredTransactions(); track item.id) {
-            <tr class="transaction-row">
-              <td class="desc">{{ item.description }}</td>
-              <td>
-                <span class="badge" [class.badge-income]="item.type === 'income'" [class.badge-expense]="item.type === 'expense'">
-                  {{ item.type === 'income' ? 'Entrada' : 'Saída' }}
-                </span>
-              </td>
-              <!-- Aplicando nossa Diretiva e Pipe customizados para formatação e estilo dinâmicos -->
-              <td>
-                <span [appHighlightAmount]="item.type">
-                  {{ item.amount | currencyFormat:true:item.type }}
-                </span>
-              </td>
-              <td>{{ item.date | date:'dd/MM/yyyy' }}</td>
-              <td>
-                <button class="btn-delete" (click)="deleteTransaction(item.id)">
-                  Excluir
-                </button>
-              </td>
-            </tr>
-          } @empty {
-            <!-- O bloco @empty é renderizado automaticamente se a lista 'filteredTransactions()' estiver vazia -->
+      <!-- Tabela de Transações -->
+      <div class="transactions-table-wrapper">
+        <table class="transactions-table">
+          <thead>
             <tr>
-              <td colspan="5" class="empty-state">
-                Nenhuma transação encontrada para este filtro.
-              </td>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th>Tipo</th>
+              <th>Valor</th>
+              <th>Data</th>
+              <th>Ações</th>
             </tr>
+          </thead>
+          <tbody>
+            @for (item of filteredTransactions(); track item.id) {
+              <tr class="transaction-row">
+                <td class="desc">{{ item.description }}</td>
+                <td class="category-col">{{ item.category }}</td>
+                <td>
+                  <span class="badge" [class.badge-income]="item.type === 'income'" [class.badge-expense]="item.type === 'expense'">
+                    {{ item.type === 'income' ? 'Entrada' : 'Saída' }}
+                  </span>
+                </td>
+                <td>
+                  <!-- Envolvemos o span com uma classe 'value-container' para travar alinhamento horizontal -->
+                  <div class="value-container">
+                    <span [appHighlightAmount]="item.type">
+                      {{ item.amount | currencyFormat:true:item.type }}
+                    </span>
+                  </div>
+                </td>
+                <td>{{ item.date | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <div class="actions-col">
+                    <a [routerLink]="['/editar-transacao', item.id]" class="btn-edit">
+                      Editar
+                    </a>
+                    <button class="btn-delete" (click)="deleteTransaction(item.id)">
+                      Excluir
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty-state">
+                  Nenhuma transação encontrada para este filtro.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Lado Direito: Detalhes de Gastos e Gráfico de Pizza -->
+    <section class="chart-section">
+      <div class="section-header">
+        <h2>Detalhamento de Gastos</h2>
+      </div>
+      
+      <div class="chart-container">
+        @if (expensesOnly().length > 0) {
+          <canvas #expenseChartCanvas></canvas>
+        } @else {
+          <div class="empty-chart">
+            <p>Adicione despesas para gerar o gráfico.</p>
+          </div>
+        }
+      </div>
+
+      <!-- Nova área: Lista de Breakdown de Categorias para preencher o espaço vazio e enriquecer o design -->
+      @if (expensesOnly().length > 0) {
+        <div class="category-breakdown-list">
+          @for (item of categoryBreakdown(); track item.category) {
+            <div class="breakdown-item">
+              <div class="breakdown-info">
+                <div class="breakdown-label">
+                  <span class="category-indicator" [style.backgroundColor]="item.color"></span>
+                  <span class="category-name">{{ item.category }}</span>
+                </div>
+                <div class="breakdown-values">
+                  <span class="breakdown-amount">{{ item.amount | currencyFormat }}</span>
+                  <span class="breakdown-percentage">({{ item.percentage | number:'1.0-1' }}%)</span>
+                </div>
+              </div>
+              <!-- Barra de Progresso Horizontal -->
+              <div class="breakdown-progress-bar">
+                <div 
+                  class="breakdown-progress-fill" 
+                  [style.width.%]="item.percentage" 
+                  [style.backgroundColor]="item.color"
+                ></div>
+              </div>
+            </div>
           }
-        </tbody>
-      </table>
-    </div>
-  </section>
+        </div>
+      }
+    </section>
+
+  </div>
 </div>

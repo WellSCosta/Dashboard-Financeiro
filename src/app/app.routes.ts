@@ -13,7 +13,13 @@ export const routes: Routes = [
     path: 'nova-transacao',
     component: TransactionFormComponent,
     title: 'Finanças - Nova Transação',
-    canActivate: [authGuard] // Protegendo esta rota com o Guard didático
+    canActivate: [authGuard]
+  },
+  {
+    path: 'editar-transacao/:id',
+    component: TransactionFormComponent,
+    title: 'Finanças - Editar Transação',
+    canActivate: [authGuard]
   },
   {
     path: '**', // Rota curinga para redirecionar caminhos não encontrados (404)

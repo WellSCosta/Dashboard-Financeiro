@@ -1,10 +1,10 @@
 <div class="form-container">
   <header class="form-header">
-    <h1>Nova Transação</h1>
-    <p>Adicione receitas ou despesas à sua conta</p>
+    <!-- Exibe título dinâmico usando a diretiva condicional do Angular -->
+    <h1>{{ isEditMode ? 'Editar Transação' : 'Nova Transação' }}</h1>
+    <p>{{ isEditMode ? 'Modifique os campos abaixo para atualizar sua transação' : 'Adicione receitas ou despesas à sua conta' }}</p>
   </header>
 
-  <!-- Vinculamos a tag form ao FormGroup definido no TypeScript -->
   <form [formGroup]="transactionForm" (ngSubmit)="onSubmit()" class="transaction-form">
     
     <!-- Descrição -->
@@ -17,7 +17,6 @@
         placeholder="Ex: Salário, Aluguel, Academia"
         [class.is-invalid]="f['description'].touched && f['description'].invalid"
       />
-      <!-- Validação Moderna com @if -->
       @if (f['description'].touched && f['description'].errors) {
         <div class="error-feedback">
           @if (f['description'].errors['required']) {
@@ -53,21 +52,21 @@
       }
     </div>
 
-    <!-- Tipo de Transação -->
+    <!-- Tipo de Transação (Bloqueado/Desativado no modo edição para evitar inconsistência de categorias) -->
     <div class="form-group">
       <label>Tipo</label>
       <div class="radio-group">
         <label class="radio-card income-option">
-          <input type="radio" formControlName="type" value="income" />
-          <div class="radio-content">
+          <input type="radio" formControlName="type" value="income" [attr.disabled]="isEditMode ? true : null" />
+          <div class="radio-content" [class.disabled-click]="isEditMode">
             <span class="dot"></span>
             <span>Entrada (Receita)</span>
           </div>
         </label>
 
         <label class="radio-card expense-option">
-          <input type="radio" formControlName="type" value="expense" />
-          <div class="radio-content">
+          <input type="radio" formControlName="type" value="expense" [attr.disabled]="isEditMode ? true : null" />
+          <div class="radio-content" [class.disabled-click]="isEditMode">
             <span class="dot"></span>
             <span>Saída (Despesa)</span>
           </div>
@@ -75,11 +74,36 @@
       </div>
     </div>
 
+    <!-- Seletor de Categoria Dinâmico -->
+    <div class="form-group">
+      <label for="category">Categoria</label>
+      <select 
+        id="category" 
+        formControlName="category"
+        [class.is-invalid]="f['category'].touched && f['category'].invalid"
+      >
+        <option value="" disabled selected>Selecione uma categoria</option>
+        <!-- Renderiza a lista dinâmica com o fluxo de controle @for do Angular 19 -->
+        @for (cat of categoriesList; track cat) {
+          <option [value]="cat">{{ cat }}</option>
+        }
+      </select>
+      
+      @if (f['category'].touched && f['category'].errors) {
+        <div class="error-feedback">
+          @if (f['category'].errors['required']) {
+            <span>A categoria é obrigatória.</span>
+          }
+        </div>
+      }
+    </div>
+
     <!-- Ações do Formulário -->
     <div class="form-actions">
-      <!-- O botão de voltar usa RouterModule para navegação -->
       <a routerLink="/" class="btn-secondary">Cancelar</a>
-      <button type="submit" class="btn-primary">Salvar Transação</button>
+      <button type="submit" class="btn-primary">
+        {{ isEditMode ? 'Salvar Alterações' : 'Salvar Transação' }}
+      </button>
     </div>
   </form>
 </div>
